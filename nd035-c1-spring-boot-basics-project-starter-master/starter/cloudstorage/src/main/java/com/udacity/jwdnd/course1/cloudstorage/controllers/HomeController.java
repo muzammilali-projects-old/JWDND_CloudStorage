@@ -11,6 +11,11 @@ import com.udacity.jwdnd.course1.cloudstorage.models.User;
 import com.udacity.jwdnd.course1.cloudstorage.services.EncryptionService;
 import com.udacity.jwdnd.course1.cloudstorage.services.NoteService;
 import com.udacity.jwdnd.course1.cloudstorage.services.UserService;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -33,7 +38,7 @@ public class HomeController {
     private EncryptionService encryptionService;
     private FileMapper fileMapper;
 
-    public HomeController(UserService userService, NoteService noteService, CredentialMapper credentialMapper, EncryptionService encryptionService) {
+    public HomeController(UserService userService, NoteService noteService, CredentialMapper credentialMapper, EncryptionService encryptionService, FileMapper fileMapper) {
         this.userService = userService;
         this.noteService = noteService;
         this.credentialMapper = credentialMapper;
@@ -52,7 +57,35 @@ public class HomeController {
 
         model.addAttribute("credentials", credentialList);
 
+        List<File> fileList = this.fileMapper.getAllFiles(user.getUserId());
+
+        model.addAttribute("files", fileList);
+
         return "home";
+    }
+
+    @GetMapping("/home/viewFile")
+    ResponseEntity<Resource> getFile(Authentication authentication, @RequestParam("id") int fileId) {
+        User user = userService.getUser(authentication.getName());
+        File file = fileMapper.getFile(fileId);
+        if (file.getUserId() == user.getUserId()) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(file.getContentType())).header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\""
+                    + file.getFileName() + "\"").body(new
+                            ByteArrayResource(file.getFileDataBytes()));
+        }
+        return null;
+    }
+
+    @GetMapping("/home/deleteFile")
+    public String deleteFile(Authentication authentication, Model model, @RequestParam("id") int fileId) {
+        User user = userService.getUser(authentication.getName());
+        File file = fileMapper.getFile(fileId);
+        if (file.getUserId() == user.getUserId()) {
+            fileMapper.delete(fileId);
+        }
+
+        return "redirect:";
     }
 
     @GetMapping("/home/deleteNote")
@@ -121,7 +154,7 @@ public class HomeController {
     }
 
     @PostMapping("/home/addCredential")
-    public String addNote(@ModelAttribute Credential credential, Model model, Authentication authentication) {
+    public String addCredential(@ModelAttribute Credential credential, Model model, Authentication authentication) {
         String username = authentication.getName();
         User user = userService.getUser(username);
 

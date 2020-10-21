@@ -12,11 +12,11 @@ public interface FileMapper {
     @Options(useGeneratedKeys = true, keyProperty = "fileId")
     int insert(File file);
 
-    @Select("SELECT * FROM FILES")
-    List<File> getAllFiles();
+    @Select("SELECT * FROM FILES where userid = #{userId}")
+    List<File> getAllFiles(Integer userId);
 
     @Select("SELECT * FROM FILES WHERE fileid = #{fileId}")
-    List<File> getFile(int fileId);
+    File getFile(int fileId);
 
     @Delete("DELETE FROM FILES WHERE fileid = #{fileId}")
     void delete(int fileId);
